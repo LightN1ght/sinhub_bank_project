@@ -2,6 +2,7 @@ from src import masks
 
 
 def mask_account_card(user_account: str) -> str:
+    """Функция которая маскирует карту или счёт пользователя и создаёт виджет"""
     account_type = " ".join(user_account.split()[:-1])
     account_number = user_account.split()[-1]
 
@@ -14,4 +15,5 @@ def mask_account_card(user_account: str) -> str:
 
 
 def get_date(date: str) -> str:
+    """Функция которая обрабатывает формат даты"""
     return f"{date[8:10]}.{date[5:7]}.{date[:4]}"
