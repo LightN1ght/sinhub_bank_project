@@ -25,5 +25,5 @@ lint = [
 [tool.black]
 line-length = 119
 
-[tool.isort]
-line-length = 119
+#[tool.isort]
+#line-length = 119

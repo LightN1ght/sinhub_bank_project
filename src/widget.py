@@ -11,3 +11,7 @@ def mask_account_card(user_account: str) -> str:
         masked_card = masks.get_mask_card_number(account_number)
 
     return f"{account_type} {masked_card}"
+
+
+def get_date(date: str) -> str:
+    return f"{date[8:10]}.{date[5:7]}.{date[:4]}"
