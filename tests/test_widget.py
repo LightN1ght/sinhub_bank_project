@@ -1,6 +1,6 @@
 import pytest
 
-from src.widget import mask_account_card, get_date
+from src.widget import get_date, mask_account_card
 
 
 @pytest.mark.parametrize(
@@ -31,10 +31,12 @@ from src.widget import mask_account_card, get_date
 def test_mask_account_card(value, expected):
     assert mask_account_card(value) == expected
 
+
 @pytest.mark.parametrize("value", ["", "   ", "Visa", "Счет"])
 def test_mask_account_card_rejects_missing_number(value):
     with pytest.raises(ValueError):
         mask_account_card(value)
+
 
 @pytest.mark.parametrize(
     ("value", "expected"),
@@ -46,6 +48,7 @@ def test_mask_account_card_rejects_missing_number(value):
 )
 def test_get_date(value, expected):
     assert get_date(value) == expected
+
 
 @pytest.mark.parametrize("value", ["", "   ", "не дата", "2024-13-40"])
 def test_get_date_rejects_invalid_input(value):

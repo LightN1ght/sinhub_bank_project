@@ -10,3 +10,10 @@ def operations():
         {"id": 615064591, "state": "CANCELED", "date": "2018-10-14T08:21:33.419441"},
     ]
 
+
+@pytest.fixture
+def same_date_operations():
+    return [
+        {"id": "first", "date": "2024-03-11T12:00:00"},
+        {"id": "second", "date": "2024-03-11T12:00:00"},
+    ]
