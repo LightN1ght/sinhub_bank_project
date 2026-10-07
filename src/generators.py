@@ -11,8 +11,8 @@ def transaction_descriptions(transactions: list):
         yield transaction["description"]
 
 
-def card_number_generator(min_range: int, max_range: int):
+def card_number_generator(start: int, stop: int):
     """Генератор, который возвращает номера карт в заданном диапазоне"""
-    for i in range(min_range, max_range + 1):
+    for i in range(start, stop + 1):
         digits = f"{i:016d}"
         yield (f"{digits[:4]} {digits[4:8]} " f"{digits[8:12]} {digits[12:16]}")
