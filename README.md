@@ -56,3 +56,58 @@ completed = filter_by_state(operations)
 latest_first = sort_by_date(completed)
 oldest_first = sort_by_date(completed, is_reversed=False)
 ```
+
+### Генераторы для транзакций и номеров карт
+
+Модуль `src.generators` содержит генераторы для отбора транзакций по коду валюты, получения описаний операций и выдачи номеров карт в диапазоне.
+
+```python
+from src.generators import (
+    card_number_generator,
+    filter_by_currency,
+    transaction_descriptions,
+)
+
+transactions = [
+    {
+        "id": 1,
+        "description": "Перевод организации",
+        "operationAmount": {
+            "amount": "9824.07",
+            "currency": {"name": "USD", "code": "USD"},
+        },
+    },
+    {
+        "id": 2,
+        "description": "Перевод со счета на счет",
+        "operationAmount": {
+            "amount": "5000.00",
+            "currency": {"name": "руб.", "code": "RUB"},
+        },
+    },
+]
+
+# Генератор возвращает только транзакции с указанным кодом валюты.
+usd_transactions = list(filter_by_currency(transactions, "USD"))
+
+# Генератор выдаёт описания в порядке исходного списка.
+descriptions = list(transaction_descriptions(transactions))
+
+# Границы диапазона включены; номера форматируются группами по четыре цифры.
+card_numbers = list(card_number_generator(1, 3))
+# ['0000 0000 0000 0001', '0000 0000 0000 0002', '0000 0000 0000 0003']
+```
+
+### Тесты и покрытие
+
+Запустить все тесты можно командой:
+
+```bash
+pytest
+```
+
+Чтобы посмотреть покрытие исходного кода и создать HTML-отчёт в `htmlcov/`, выполните:
+
+```bash
+pytest --cov=src --cov-report=term-missing --cov-report=html
+```
