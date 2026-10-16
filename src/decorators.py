@@ -11,8 +11,10 @@ def log(
     filename: str | None = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Создаёт декоратор для записи результата вызова функции"""
+
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         """Оборачивает функцию логированием"""
+
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             """Записывает начало вызова, результат или сведения об ошибке"""
@@ -28,10 +30,7 @@ def log(
             try:
                 result = func(*args, **kwargs)
             except Exception as error:
-                message = (
-                    f"{func.__name__} error: {type(error).__name__}. "
-                    f"Inputs: {args}, {kwargs}"
-                )
+                message = f"{func.__name__} error: {type(error).__name__}. " f"Inputs: {args}, {kwargs}"
                 if filename is None:
                     print(message)
                 else:
