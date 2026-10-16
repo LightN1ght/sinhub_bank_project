@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import logging
+from pathlib import Path
 
 logs_dir = Path(__file__).resolve().parent.parent / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -14,9 +14,7 @@ if not logger.handlers:
         mode="w",
         encoding="utf-8",
     )
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 

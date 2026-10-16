@@ -1,5 +1,5 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
 logs_dir = Path(__file__).resolve().parent.parent / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -13,11 +13,10 @@ if not logger.handlers:
         mode="w",
         encoding="utf-8",
     )
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
+
 
 def get_mask_card_number(user_card_number: str) -> str:
     """Функция, которая маскирует номер карты пользователя"""
@@ -26,7 +25,6 @@ def get_mask_card_number(user_card_number: str) -> str:
         raise ValueError("Номер карты не должен быть пустым")
     logger.debug("Номер карты отформатирован")
     return f"{user_card_number[:4]} {user_card_number[4:6]}** **** {user_card_number[-4:]}"
-
 
 
 def get_mask_account(user_account_number: str) -> str:
