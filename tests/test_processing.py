@@ -1,6 +1,7 @@
 import pytest
 
-from src.processing import filter_by_state, sort_by_date, process_bank_operations, process_bank_search
+from src.processing import (filter_by_state, process_bank_operations,
+                            process_bank_search, sort_by_date)
 
 
 @pytest.mark.parametrize(
@@ -61,6 +62,7 @@ def test_sort_by_date_rejects_invalid_date(date):
     with pytest.raises(ValueError):
         sort_by_date([{"date": date}])
 
+
 def test_process_bank_operations_counts_categories():
     data = [
         {"description": "Перевод организации"},
@@ -80,6 +82,7 @@ def test_process_bank_operations_counts_categories():
         "Открытие вклада": 1,
         "Перевод с карты на карту": 0,
     }
+
 
 def test_process_bank_search():
     data = [

@@ -20,6 +20,7 @@ def test_filter_by_currency_empty():
     result = list(filter_by_currency([], "USD"))
     assert result == []
 
+
 def test_filter_by_currency_flat_records():
     transactions = [
         {"id": 1, "currency_code": "RUB"},

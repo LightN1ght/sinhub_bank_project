@@ -1,27 +1,20 @@
-from src.transaction_readers import (
-    read_transactions_from_csv,
-    read_transactions_from_excel,
-)
-from src.utils import load_transactions
-from src.processing import (
-    filter_by_state,
-    process_bank_search,
-    sort_by_date,
-)
 from src.generators import filter_by_currency
+from src.processing import filter_by_state, process_bank_search, sort_by_date
+from src.transaction_readers import (read_transactions_from_csv,
+                                     read_transactions_from_excel)
+from src.utils import load_transactions
 from src.widget import get_date, mask_account_card
+
 
 def main() -> None:
     """Загружает транзакции, применяет выбранные фильтры и выводит результат"""
-    print(
-        """
+    print("""
         Программа: Привет! Добро пожаловать в программу работы с банковскими транзакциями.
         Выберите необходимый пункт меню:
         1. Получить информацию о транзакциях из JSON-файла
         2. Получить информацию о транзакциях из CSV-файла
         3. Получить информацию о транзакциях из XLSX-файла
-        """
-    )
+        """)
 
     user_choice = int(input("Пользователь: "))
 
@@ -38,9 +31,7 @@ def main() -> None:
     available_statuses = {"EXECUTED", "CANCELED", "PENDING"}
 
     while True:
-        status = input(
-            "Введите статус операции: EXECUTED, CANCELED или PENDING: "
-        ).strip().upper()
+        status = input("Введите статус операции: EXECUTED, CANCELED или PENDING: ").strip().upper()
 
         if status in available_statuses:
             break
@@ -52,9 +43,7 @@ def main() -> None:
     sort_answer = input("Отсортировать операции по дате? Да/Нет: ").strip().lower()
 
     if sort_answer == "да":
-        direction = input(
-            "Введите 1 для сортировки по возрастанию или 2 — по убыванию: "
-        ).strip()
+        direction = input("Введите 1 для сортировки по возрастанию или 2 — по убыванию: ").strip()
 
         if direction == "1":
             filtered_transactions = sort_by_date(
@@ -67,18 +56,12 @@ def main() -> None:
                 is_reversed=True,
             )
 
-    rub_answer = input(
-        "Программа: Выводить только рублевые транзакции? Да/Нет: "
-    ).strip().lower()
+    rub_answer = input("Программа: Выводить только рублевые транзакции? Да/Нет: ").strip().lower()
 
     if rub_answer == "да":
-        filtered_transactions = list(
-            filter_by_currency(filtered_transactions, "RUB")
-        )
+        filtered_transactions = list(filter_by_currency(filtered_transactions, "RUB"))
 
-    search_answer = input(
-        "Отфильтровать операции по слову в описании? Да/Нет: "
-    ).strip().lower()
+    search_answer = input("Отфильтровать операции по слову в описании? Да/Нет: ").strip().lower()
 
     if search_answer == "да":
         search = input("Введите слово для поиска: ").strip()
@@ -90,10 +73,7 @@ def main() -> None:
             )
 
     if not filtered_transactions:
-        print(
-            "Программа: Не найдено ни одной транзакции, "
-            "подходящей под ваши условия фильтрации"
-        )
+        print("Программа: Не найдено ни одной транзакции, " "подходящей под ваши условия фильтрации")
         return
 
     print("Программа: Распечатываю итоговый список транзакций...")

@@ -1,7 +1,7 @@
 import re
+from collections import Counter
 from datetime import datetime
 from typing import Any
-from collections import Counter
 
 
 def filter_by_state(dict_list: list[dict[str, Any]], state: str = "EXECUTED") -> list[dict[str, Any]]:
@@ -18,9 +18,10 @@ def sort_by_date(dict_list: list[dict[str, Any]], is_reversed: bool = True) -> l
     """Функция, которая сортирует список по дате, по умолчанию по убыванию"""
     return sorted(dict_list, key=lambda item: datetime.fromisoformat(item["date"]), reverse=is_reversed)
 
+
 def process_bank_search(
-        data: list[dict[str, Any]],
-        search: str,
+    data: list[dict[str, Any]],
+    search: str,
 ) -> list[dict[str, Any]]:
     """Поиск строки в описаниях транзакций"""
     result = []
@@ -32,6 +33,7 @@ def process_bank_search(
             result.append(transaction)
 
     return result
+
 
 def process_bank_operations(
     data: list[dict[str, Any]],
