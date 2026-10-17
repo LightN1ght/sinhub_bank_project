@@ -21,6 +21,17 @@ def test_filter_by_currency_empty():
     assert result == []
 
 
+def test_filter_by_currency_flat_records():
+    transactions = [
+        {"id": 1, "currency_code": "RUB"},
+        {"id": 2, "currency_code": "USD"},
+    ]
+
+    result = list(filter_by_currency(transactions, "RUB"))
+
+    assert result == [transactions[0]]
+
+
 def test_transaction_descriptions(transactions):
     actual = list(transaction_descriptions(transactions))
     expected = [
