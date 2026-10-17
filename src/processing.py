@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any
 
@@ -15,3 +16,18 @@ def filter_by_state(dict_list: list[dict[str, Any]], state: str = "EXECUTED") ->
 def sort_by_date(dict_list: list[dict[str, Any]], is_reversed: bool = True) -> list[dict[str, Any]]:
     """Функция, которая сортирует список по дате, по умолчанию по убыванию"""
     return sorted(dict_list, key=lambda item: datetime.fromisoformat(item["date"]), reverse=is_reversed)
+
+def process_bank_search(
+        data: list[dict[str, Any]],
+        search: str,
+) -> list[dict[str, Any]]:
+    """Поиск строки в описаниях транзакций"""
+    result = []
+
+    for transaction in data:
+        description = transaction["description"]
+
+        if re.search(re.escape(search), description, flags=re.IGNORECASE):
+            result.append(transaction)
+
+    return result
