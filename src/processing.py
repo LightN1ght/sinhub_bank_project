@@ -8,7 +8,7 @@ def filter_by_state(dict_list: list[dict[str, Any]], state: str = "EXECUTED") ->
     """Функция, которая фильтрует список только с элементами с указанным состоянием, по умолчанию EXECUTED"""
     result = []
     for item in dict_list:
-        if item["state"] == state:
+        if item.get("state") == state:
             result.append(item)
 
     return result

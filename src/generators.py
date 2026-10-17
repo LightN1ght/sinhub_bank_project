@@ -1,7 +1,12 @@
 def filter_by_currency(transactions: list, currency: str):
     """Генератор, который возвращает только транзакции с указанной валютой"""
     for transaction in transactions:
-        if transaction["operationAmount"]["currency"]["code"] == currency:
+        if "operationAmount" in transaction:
+            currency_code = transaction["operationAmount"]["currency"]["code"]
+        else:
+            currency_code = transaction["currency_code"]
+
+        if currency_code == currency:
             yield transaction
 
 
