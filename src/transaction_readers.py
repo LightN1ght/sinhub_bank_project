@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def read_transactions_from_csv(file_path):
     """Читает транзакции из CSV файла"""
     table = pd.read_csv(file_path, sep=";")
