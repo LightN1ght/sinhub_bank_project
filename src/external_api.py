@@ -53,7 +53,7 @@ def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
 
     rates = data["rates"]
     rub_per_eur = float(rates["RUB"])
-    result = []
+    result: list[dict[str, str | float]] = []
 
     for currency in currencies:
         units_per_eur = 1.0 if currency == "EUR" else float(rates[currency])
@@ -77,7 +77,7 @@ def get_stock_prices(stocks: list[str]) -> list[dict[str, str | float]]:
     if not TWELVE_DATA_API:
         raise ValueError("Не указан ключ Twelve Data API")
 
-    result = []
+    result: list[dict[str, str | float]] = []
 
     for stock in stocks:
         response = requests.get(

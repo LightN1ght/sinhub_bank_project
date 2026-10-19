@@ -41,12 +41,12 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
     expenses["last_digits"] = expenses["Номер карты"].astype(str).str[-4:]
     totals = expenses.groupby("last_digits", sort=True)["Сумма платежа"].sum()
 
-    cards = []
+    cards: list[dict[str, str | float]] = []
     for last_digits, amount in totals.items():
         total_spent = round(-float(amount), 2)
         cards.append(
             {
-                "last_digits": last_digits,
+                "last_digits": str(last_digits),
                 "total_spent": total_spent,
                 "cashback": round(total_spent / 100, 2),
             }
