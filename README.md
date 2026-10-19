@@ -25,13 +25,13 @@ EXCHANGE_API=ваш_api_ключ
 
 Для транзакций в рублях API-ключ не требуется.
 
-Запустить демонстрационную программу можно командой:
+Запустить интерактивную программу можно командой:
 
 ```bash
 python main.py
 ```
 
-Программа попросит ввести номер карты и номер счёта, после чего покажет их маскированные версии
+Программа предложит выбрать источник транзакций (JSON, CSV или Excel), статус операций и дополнительные фильтры: сортировку по дате, рублёвые транзакции и поиск по описанию. Затем она покажет подходящие операции.
 
 ## Использование функций
 
@@ -73,6 +73,22 @@ completed = filter_by_state(operations)
 latest_first = sort_by_date(completed)
 oldest_first = sort_by_date(completed, is_reversed=False)
 ```
+
+### Поиск и подсчёт категорий операций
+
+Модуль `src.processing` также содержит `process_bank_search` для поиска текста в описаниях операций и `process_bank_operations` для подсчёта операций по списку категорий. Поиск не учитывает регистр, а категории сопоставляются с описанием целиком.
+
+```python
+from src.processing import process_bank_operations, process_bank_search
+
+matches = process_bank_search(operations, "перевод")
+category_counts = process_bank_operations(
+    operations,
+    ["Перевод организации", "Открытие вклада"],
+)
+```
+
+Функция `main` в корневом модуле `main.py` связывает загрузку транзакций, фильтрацию, сортировку и вывод результатов в интерактивной программе.
 
 ### Генераторы для транзакций и номеров карт
 
@@ -202,4 +218,10 @@ pytest
 
 ```bash
 pytest --cov=src --cov-report=term-missing --cov-report=html
+```
+
+Чтобы включить в покрытие также интерактивную функцию `main`, используйте:
+
+```bash
+pytest --cov=src --cov=main --cov-report=term-missing --cov-report=html
 ```
