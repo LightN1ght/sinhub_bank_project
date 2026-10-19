@@ -32,7 +32,7 @@ def convert_to_rub(transaction):
 
 
 def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
-    """Возвращает стоимость одной единицы каждой валюты в рублях."""
+    """Возвращает стоимость одной единицы каждой валюты в рублях"""
     if not currencies:
         return []
     if not EXCHANGE_API:
@@ -71,7 +71,7 @@ def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
 
 
 def get_stock_prices(stocks: list[str]) -> list[dict[str, str | float]]:
-    """Возвращает последние доступные цены акций."""
+    """Возвращает последние доступные цены акций"""
     if not stocks:
         return []
     if not TWELVE_DATA_API:

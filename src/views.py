@@ -1,6 +1,14 @@
+import json
+import logging
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
+
+from src.external_api import get_currency_rates, get_stock_prices
+from src.utils import load_operations
+
+logger = logging.getLogger(__name__)
 
 
 def get_greeting(current_time: datetime) -> str:
@@ -30,7 +38,7 @@ def select_month_transactions(
 
 
 def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
-    """Считает рублёвые расходы и кешбэк по каждой карте."""
+    """Считает рублёвые расходы и кешбэк по каждой карте"""
     expenses = transactions.loc[
         transactions["Статус"].eq("OK") & transactions["Сумма платежа"].lt(0) & transactions["Номер карты"].notna()
     ].copy()
@@ -75,3 +83,33 @@ def get_top_transactions(
         )
 
     return result
+
+
+def build_home_page(
+    date_time: str,
+    transactions: pd.DataFrame,
+    settings: dict[str, list[str]],
+) -> str:
+    """Собирает JSON главной страницы из переданных данных"""
+    current_time = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+    month_transactions = select_month_transactions(transactions, date_time)
+
+    response = {
+        "greeting": get_greeting(current_time),
+        "cards": get_cards_info(month_transactions),
+        "top_transactions": get_top_transactions(month_transactions),
+        "currency_rates": get_currency_rates(settings["user_currencies"]),
+        "stock_prices": get_stock_prices(settings["user_stocks"]),
+    }
+
+    return json.dumps(response, ensure_ascii=False, allow_nan=False)
+
+
+def main_page(date_time: str) -> str:
+    """Загружает данные и возвращает JSON главной страницы."""
+    project_root = Path(__file__).resolve().parent.parent
+    transactions = load_operations(str(project_root / "data" / "operations.xlsx"))
+    settings = json.loads((project_root / "user_settings.json").read_text(encoding="utf-8"))
+
+    logger.info("Формирование главной страницы за %s", date_time)
+    return build_home_page(date_time, transactions, settings)

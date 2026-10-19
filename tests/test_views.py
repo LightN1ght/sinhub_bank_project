@@ -1,9 +1,18 @@
+import json
 from datetime import datetime
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
-from src.views import get_cards_info, get_greeting, get_top_transactions, select_month_transactions
+from src.views import (
+    build_home_page,
+    get_cards_info,
+    get_greeting,
+    get_top_transactions,
+    select_month_transactions,
+    main_page,
+)
 
 
 @pytest.mark.parametrize(
@@ -80,3 +89,92 @@ def test_get_top_transactions_sorts_amount_and_skips_failed() -> None:
     assert all(item["date"] == "01.12.2021" for item in result)
     assert all(set(item) == {"date", "amount", "category", "description"} for item in result)
     assert result[-1]["category"] == ""
+
+
+def test_build_home_page_combines_month_data() -> None:
+    transactions = pd.DataFrame(
+        {
+            "Дата операции": pd.to_datetime(
+                [
+                    "2021-11-30 23:59:59",
+                    "2021-12-01 00:00:00",
+                    "2021-12-03 10:00:00",
+                    "2021-12-05 10:00:00",
+                    "2021-12-10 10:00:00",
+                    "2021-12-15 10:00:00",
+                    "2021-12-20 12:00:00",
+                    "2021-12-20 12:00:01",
+                ]
+            ),
+            "Статус": ["OK", "OK", "OK", "OK", "OK", "FAILED", "OK", "OK"],
+            "Номер карты": [
+                None,
+                "*1234",
+                "*1234",
+                None,
+                "*1234",
+                "*1234",
+                "*9876",
+                None,
+            ],
+            "Сумма платежа": [999, -100, -50, 200, -25, 1000, -10, 9999],
+            "Валюта платежа": ["RUB"] * 8,
+            "Категория": ["Тест"] * 8,
+            "Описание": [f"Операция {i}" for i in range(8)],
+        }
+    )
+    settings = {
+        "user_currencies": ["USD", "EUR"],
+        "user_stocks": ["AAPL", "MSFT"],
+    }
+    rates = [
+        {"currency": "USD", "rate": 82.0},
+        {"currency": "EUR", "rate": 92.0},
+    ]
+    prices = [
+        {"stock": "AAPL", "price": 343.0},
+        {"stock": "MSFT", "price": 500.0},
+    ]
+
+    with (
+        patch("src.views.get_currency_rates", return_value=rates) as mock_rates,
+        patch("src.views.get_stock_prices", return_value=prices) as mock_prices,
+    ):
+        result = json.loads(build_home_page("2021-12-20 12:00:00", transactions, settings))
+
+    assert result["greeting"] == "Добрый день"
+    assert result["cards"] == [
+        {"last_digits": "1234", "total_spent": 175.0, "cashback": 1.75},
+        {"last_digits": "9876", "total_spent": 10.0, "cashback": 0.1},
+    ]
+    assert [item["amount"] for item in result["top_transactions"]] == [
+        200.0,
+        -10.0,
+        -25.0,
+        -50.0,
+        -100.0,
+    ]
+    assert result["currency_rates"] == rates
+    assert result["stock_prices"] == prices
+    mock_rates.assert_called_once_with(["USD", "EUR"])
+    mock_prices.assert_called_once_with(["AAPL", "MSFT"])
+
+
+def test_main_page_reads_project_files() -> None:
+    with (
+        patch(
+            "src.views.get_currency_rates",
+            side_effect=lambda currencies: [{"currency": currency, "rate": 1.0} for currency in currencies],
+        ),
+        patch(
+            "src.views.get_stock_prices",
+            side_effect=lambda stocks: [{"stock": stock, "price": 1.0} for stock in stocks],
+        ),
+    ):
+        result = json.loads(main_page("2021-12-31 23:59:59"))
+
+    assert result["greeting"] == "Доброй ночи"
+    assert len(result["cards"]) >= 1
+    assert len(result["top_transactions"]) == 5
+    assert [item["currency"] for item in result["currency_rates"]] == ["USD", "EUR"]
+    assert [item["stock"] for item in result["stock_prices"]] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
