@@ -54,3 +54,24 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
         )
 
     return cards
+
+def get_top_transactions(
+    transactions: pd.DataFrame,
+) -> list[dict[str, str | float]]:
+    """Возвращает пять успешных операций по убыванию суммы платежа"""
+    completed = transactions.loc[transactions["Статус"].eq("OK")]
+    top_five = completed.nlargest(5, "Сумма платежа")
+
+    result = []
+    for _, row in top_five.iterrows():
+        category = row["Категория"]
+        result.append(
+            {
+                "date": row["Дата операции"].strftime("%d.%m.%Y"),
+                "amount": float(row["Сумма платежа"]),
+                "category": "" if pd.isna(category) else str(category),
+                "description": str(row["Описание"]),
+            }
+        )
+
+    return result

@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from src.views import get_greeting, select_month_transactions, get_cards_info
+from src.views import get_greeting, select_month_transactions, get_cards_info, get_top_transactions
 
 
 @pytest.mark.parametrize(
@@ -60,3 +60,24 @@ def test_get_cards_info_counts_successful_expenses() -> None:
         {"last_digits": "1234", "total_spent": 200.0, "cashback": 2.0},
         {"last_digits": "9876", "total_spent": 7.94, "cashback": 0.08},
     ]
+
+def test_get_top_transactions_sorts_amount_and_skips_failed() -> None:
+    transactions = pd.DataFrame(
+        {
+            "Дата операции": pd.to_datetime(["2021-12-01"] * 6),
+            "Статус": ["OK", "OK", "OK", "OK", "OK", "FAILED"],
+            "Сумма платежа": [120, -50, 10, 300, -200, 999],
+            "Категория": ["A", "B", "C", "D", None, "F"],
+            "Описание": ["one", "two", "three", "four", "five", "failed"],
+        }
+    )
+
+    result = get_top_transactions(transactions)
+
+    assert [item["amount"] for item in result] == [300, 120, 10, -50, -200]
+    assert all(item["date"] == "01.12.2021" for item in result)
+    assert all(
+        set(item) == {"date", "amount", "category", "description"}
+        for item in result
+    )
+    assert result[-1]["category"] == ""
