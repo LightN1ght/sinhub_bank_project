@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from src.views import get_greeting, select_month_transactions
+from src.views import get_greeting, select_month_transactions, get_cards_info
 
 
 @pytest.mark.parametrize(
@@ -43,3 +43,20 @@ def test_select_month_transactions_includes_both_boundaries() -> None:
     result = select_month_transactions(transactions, "2021-12-20 12:00:00")
 
     assert result["Описание"].tolist() == ["начало", "до даты"]
+
+def test_get_cards_info_counts_successful_expenses() -> None:
+    transactions = pd.DataFrame(
+        [
+            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -150.0, "Валюта платежа": "RUB"},
+            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -50.0, "Валюта платежа": "RUB"},
+            {"Номер карты": "*1234", "Статус": "FAILED", "Сумма платежа": -1000.0, "Валюта платежа": "RUB"},
+            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": 20.0, "Валюта платежа": "RUB"},
+            {"Номер карты": "*9876", "Статус": "OK", "Сумма платежа": -7.94, "Валюта платежа": "RUB"},
+            {"Номер карты": None, "Статус": "OK", "Сумма платежа": -300.0, "Валюта платежа": "RUB"},
+        ]
+    )
+
+    assert get_cards_info(transactions) == [
+        {"last_digits": "1234", "total_spent": 200.0, "cashback": 2.0},
+        {"last_digits": "9876", "total_spent": 7.94, "cashback": 0.08},
+    ]
