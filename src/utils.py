@@ -1,5 +1,6 @@
 import json
 import logging
+import pandas as pd
 from pathlib import Path
 
 logs_dir = Path(__file__).resolve().parent.parent / "logs"
@@ -37,3 +38,11 @@ def load_transactions(file_path):
 
     logger.debug("Транзакции загружены")
     return data
+
+def load_operations(file_path: str) -> pd.DataFrame:
+    table = pd.read_excel(file_path)
+    table["Дата операции"] = pd.to_datetime(
+        table["Дата операции"],
+        format="%d.%m.%Y %H:%M:%S",
+    )
+    return table
