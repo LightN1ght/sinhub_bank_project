@@ -25,16 +25,12 @@ def test_simple_search_finds_description_and_category() -> None:
 
 
 def test_simple_search_returns_empty_list_when_nothing_found() -> None:
-    transactions = pd.DataFrame(
-        [{"Описание": "Такси", "Категория": None}]
-    )
+    transactions = pd.DataFrame([{"Описание": "Такси", "Категория": None}])
 
     assert json.loads(simple_search(transactions, "аптека")) == []
 
 
 def test_simple_search_returns_empty_list_for_blank_query() -> None:
-    transactions = pd.DataFrame(
-        [{"Описание": "Такси", "Категория": "Транспорт"}]
-    )
+    transactions = pd.DataFrame([{"Описание": "Такси", "Категория": "Транспорт"}])
 
     assert json.loads(simple_search(transactions, "   ")) == []

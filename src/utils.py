@@ -1,7 +1,8 @@
 import json
 import logging
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 logs_dir = Path(__file__).resolve().parent.parent / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -38,6 +39,7 @@ def load_transactions(file_path):
 
     logger.debug("Транзакции загружены")
     return data
+
 
 def load_operations(file_path: str) -> pd.DataFrame:
     table = pd.read_excel(file_path)

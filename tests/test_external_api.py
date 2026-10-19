@@ -4,6 +4,7 @@ import pytest
 
 from src.external_api import convert_to_rub, get_currency_rates, get_stock_prices
 
+
 def make_transaction(amount, currency_code):
     return {
         "operationAmount": {
@@ -69,6 +70,7 @@ def test_convert_to_rub_converts_eur():
     assert "to=RUB" in request_args.args[1]
     assert request_args.kwargs["headers"] == {"apikey": "test-api-key"}
 
+
 def test_get_currency_rates():
     fake_response = Mock()
     fake_response.json.return_value = {
@@ -92,6 +94,7 @@ def test_get_currency_rates():
         headers={"apikey": "test-api-key"},
         timeout=10,
     )
+
 
 def test_get_stock_prices():
     apple_response = Mock()

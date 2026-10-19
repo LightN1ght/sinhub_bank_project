@@ -1,7 +1,6 @@
 from src.generators import filter_by_currency
 from src.processing import filter_by_state, process_bank_search, sort_by_date
-from src.transaction_readers import (read_transactions_from_csv,
-                                     read_transactions_from_excel)
+from src.transaction_readers import read_transactions_from_csv, read_transactions_from_excel
 from src.utils import load_transactions
 from src.widget import get_date, mask_account_card
 

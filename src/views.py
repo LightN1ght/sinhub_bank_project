@@ -28,12 +28,11 @@ def select_month_transactions(
     mask = (dates >= month_start) & (dates <= requested_at)
     return transactions.loc[mask]
 
+
 def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
     """Считает рублёвые расходы и кешбэк по каждой карте."""
     expenses = transactions.loc[
-        transactions["Статус"].eq("OK")
-        & transactions["Сумма платежа"].lt(0)
-        & transactions["Номер карты"].notna()
+        transactions["Статус"].eq("OK") & transactions["Сумма платежа"].lt(0) & transactions["Номер карты"].notna()
     ].copy()
 
     if expenses["Валюта платежа"].ne("RUB").any():
@@ -54,6 +53,7 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
         )
 
     return cards
+
 
 def get_top_transactions(
     transactions: pd.DataFrame,

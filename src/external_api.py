@@ -1,5 +1,5 @@
-import os
 import math
+import os
 
 import requests
 from dotenv import load_dotenv
@@ -29,6 +29,7 @@ def convert_to_rub(transaction):
         transaction_amount_converted = float(api_response.json()["result"])
 
     return transaction_amount_converted
+
 
 def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
     """Возвращает стоимость одной единицы каждой валюты в рублях."""
@@ -67,6 +68,7 @@ def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
         )
 
     return result
+
 
 def get_stock_prices(stocks: list[str]) -> list[dict[str, str | float]]:
     """Возвращает последние доступные цены акций."""
