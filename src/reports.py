@@ -13,8 +13,7 @@ F = TypeVar("F", bound=Callable[..., pd.DataFrame])
 
 
 @overload
-def save_report(func: F) -> F:
-    ...
+def save_report(func: F) -> F: ...
 
 
 @overload
@@ -22,8 +21,7 @@ def save_report(
     func: None = None,
     *,
     filename: str | None = None,
-) -> Callable[[F], F]:
-    ...
+) -> Callable[[F], F]: ...
 
 
 def save_report(

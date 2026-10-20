@@ -43,8 +43,14 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
         transactions["Статус"].eq("OK") & transactions["Сумма платежа"].lt(0) & transactions["Номер карты"].notna()
     ].copy()
 
-    if expenses["Валюта платежа"].ne("RUB").any():
-        raise ValueError("Для нерублёвых платежей нужна конвертация")
+    foreign_expenses = expenses.loc[expenses["Валюта платежа"].ne("RUB")]
+    if not foreign_expenses.empty:
+        logger.warning(
+            "Пропущено %d расходов в валюте, отличной от RUB",
+            len(foreign_expenses),
+        )
+
+    expenses = expenses.loc[expenses["Валюта платежа"].eq("RUB")].copy()
 
     expenses["last_digits"] = expenses["Номер карты"].astype(str).str[-4:]
     totals = expenses.groupby("last_digits", sort=True)["Сумма платежа"].sum()
@@ -66,8 +72,8 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
 def get_top_transactions(
     transactions: pd.DataFrame,
 ) -> list[dict[str, str | float]]:
-    """Возвращает пять успешных операций по убыванию суммы платежа"""
-    completed = transactions.loc[transactions["Статус"].eq("OK")]
+    """Возвращает до пяти успешных рублёвых операций по убыванию суммы платежа"""
+    completed = transactions.loc[transactions["Статус"].eq("OK") & transactions["Валюта платежа"].eq("RUB")]
     top_five = completed.nlargest(5, "Сумма платежа")
 
     result = []
@@ -106,7 +112,7 @@ def build_home_page(
 
 
 def main_page(date_time: str) -> str:
-    """Загружает данные и возвращает JSON главной страницы."""
+    """Загружает данные и возвращает JSON главной страницы"""
     project_root = Path(__file__).resolve().parent.parent
     transactions = load_operations(str(project_root / "data" / "operations.xlsx"))
     settings = json.loads((project_root / "user_settings.json").read_text(encoding="utf-8"))

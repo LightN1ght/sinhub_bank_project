@@ -10,8 +10,8 @@ from src.views import (
     get_cards_info,
     get_greeting,
     get_top_transactions,
-    select_month_transactions,
     main_page,
+    select_month_transactions,
 )
 
 
@@ -80,6 +80,7 @@ def test_get_top_transactions_sorts_amount_and_skips_failed() -> None:
             "Сумма платежа": [120, -50, 10, 300, -200, 999],
             "Категория": ["A", "B", "C", "D", None, "F"],
             "Описание": ["one", "two", "three", "four", "five", "failed"],
+            "Валюта платежа": ["RUB"] * 6,
         }
     )
 
@@ -178,3 +179,31 @@ def test_main_page_reads_project_files() -> None:
     assert len(result["top_transactions"]) == 5
     assert [item["currency"] for item in result["currency_rates"]] == ["USD", "EUR"]
     assert [item["stock"] for item in result["stock_prices"]] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+
+
+def test_get_cards_info_skips_foreign_currency() -> None:
+    transactions = pd.DataFrame(
+        [
+            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -100.0, "Валюта платежа": "RUB"},
+            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -50.0, "Валюта платежа": "CNY"},
+        ]
+    )
+
+    assert get_cards_info(transactions) == [{"last_digits": "1234", "total_spent": 100.0, "cashback": 1.0}]
+
+
+def test_get_top_transactions_skips_foreign_currency() -> None:
+    transactions = pd.DataFrame(
+        {
+            "Дата операции": pd.to_datetime(["2021-12-01", "2021-12-01"]),
+            "Статус": ["OK", "OK"],
+            "Сумма платежа": [100, 999],
+            "Валюта платежа": ["RUB", "CNY"],
+            "Категория": ["Покупки", "Покупки"],
+            "Описание": ["рублёвая", "валютная"],
+        }
+    )
+
+    result = get_top_transactions(transactions)
+
+    assert [item["amount"] for item in result] == [100.0]
