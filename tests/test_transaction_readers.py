@@ -1,7 +1,9 @@
 from unittest.mock import Mock, patch
 
-from src.transaction_readers import (read_transactions_from_csv,
-                                     read_transactions_from_excel)
+from src.transaction_readers import (
+    read_transactions_from_csv,
+    read_transactions_from_excel,
+)
 
 
 def test_read_transactions_from_csv():
