@@ -33,6 +33,17 @@ def convert_to_rub(transaction):
 
 def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
     """Возвращает стоимость одной единицы каждой валюты в рублях"""
+    return _get_currency_rates(currencies, "latest")
+
+
+def get_historical_rub_rate(currency: str, date: str) -> float:
+    """Возвращает курс валюты к рублю на дату операции"""
+    result = _get_currency_rates([currency], date)
+    return float(result[0]["rate"])
+
+
+def _get_currency_rates(currencies: list[str], endpoint: str) -> list[dict[str, str | float]]:
+    """Запрашивает текущие или исторические курсы и пересчитывает их в рубли"""
     if not currencies:
         return []
     if not EXCHANGE_API:
@@ -40,7 +51,7 @@ def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
 
     symbols = ",".join(sorted(set(currencies) | {"RUB"}))
     response = requests.get(
-        "https://api.apilayer.com/exchangerates_data/latest",
+        f"https://api.apilayer.com/exchangerates_data/{endpoint}",
         params={"base": "EUR", "symbols": symbols},
         headers={"apikey": EXCHANGE_API},
         timeout=10,
@@ -49,21 +60,28 @@ def get_currency_rates(currencies: list[str]) -> list[dict[str, str | float]]:
     data = response.json()
 
     if data.get("success") is False:
-        raise RuntimeError("API не вернул курсы валют")
+        raise RuntimeError(f"API не вернул курсы валют ({endpoint})")
 
     rates = data["rates"]
     rub_per_eur = float(rates["RUB"])
+    if not math.isfinite(rub_per_eur) or rub_per_eur <= 0:
+        raise ValueError("Некорректный курс валюты RUB")
+
     result: list[dict[str, str | float]] = []
 
     for currency in currencies:
         units_per_eur = 1.0 if currency == "EUR" else float(rates[currency])
-        if units_per_eur <= 0:
+        if not math.isfinite(units_per_eur) or units_per_eur <= 0:
+            raise ValueError(f"Некорректный курс валюты {currency}")
+
+        rate = rub_per_eur / units_per_eur
+        if not math.isfinite(rate) or rate <= 0:
             raise ValueError(f"Некорректный курс валюты {currency}")
 
         result.append(
             {
                 "currency": currency,
-                "rate": rub_per_eur / units_per_eur,
+                "rate": rate,
             }
         )
 

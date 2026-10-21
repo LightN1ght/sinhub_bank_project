@@ -181,18 +181,41 @@ def test_main_page_reads_project_files() -> None:
     assert [item["stock"] for item in result["stock_prices"]] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
 
 
-def test_get_cards_info_skips_foreign_currency() -> None:
+def test_get_cards_info_converts_foreign_currency() -> None:
     transactions = pd.DataFrame(
         [
-            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -100.0, "Валюта платежа": "RUB"},
-            {"Номер карты": "*1234", "Статус": "OK", "Сумма платежа": -50.0, "Валюта платежа": "CNY"},
+            {
+                "Дата операции": pd.Timestamp("2021-12-01"),
+                "Номер карты": "*1234",
+                "Статус": "OK",
+                "Сумма платежа": -100.0,
+                "Валюта платежа": "RUB",
+            },
+            {
+                "Дата операции": pd.Timestamp("2021-12-01"),
+                "Номер карты": "*1234",
+                "Статус": "OK",
+                "Сумма платежа": -50.0,
+                "Валюта платежа": "CNY",
+            },
+            {
+                "Дата операции": pd.Timestamp("2021-12-01"),
+                "Номер карты": "*1234",
+                "Статус": "OK",
+                "Сумма платежа": -2.0,
+                "Валюта платежа": "CNY",
+            },
         ]
     )
 
-    assert get_cards_info(transactions) == [{"last_digits": "1234", "total_spent": 100.0, "cashback": 1.0}]
+    with patch("src.views.get_historical_rub_rate", return_value=10.0) as mock_rate:
+        result = get_cards_info(transactions)
+
+    assert result == [{"last_digits": "1234", "total_spent": 620.0, "cashback": 6.2}]
+    mock_rate.assert_called_once_with("CNY", "2021-12-01")
 
 
-def test_get_top_transactions_skips_foreign_currency() -> None:
+def test_get_top_transactions_converts_foreign_currency() -> None:
     transactions = pd.DataFrame(
         {
             "Дата операции": pd.to_datetime(["2021-12-01", "2021-12-01"]),
@@ -204,6 +227,8 @@ def test_get_top_transactions_skips_foreign_currency() -> None:
         }
     )
 
-    result = get_top_transactions(transactions)
+    with patch("src.views.get_historical_rub_rate", return_value=10.0) as mock_rate:
+        result = get_top_transactions(transactions)
 
-    assert [item["amount"] for item in result] == [100.0]
+    assert [item["amount"] for item in result] == [9990.0, 100.0]
+    mock_rate.assert_called_once_with("CNY", "2021-12-01")

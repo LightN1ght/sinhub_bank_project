@@ -2,7 +2,12 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from src.external_api import convert_to_rub, get_currency_rates, get_stock_prices
+from src.external_api import (
+    convert_to_rub,
+    get_currency_rates,
+    get_historical_rub_rate,
+    get_stock_prices,
+)
 
 
 def make_transaction(amount, currency_code):
@@ -94,6 +99,43 @@ def test_get_currency_rates():
         headers={"apikey": "test-api-key"},
         timeout=10,
     )
+
+
+def test_get_historical_rub_rate():
+    fake_response = Mock()
+    fake_response.json.return_value = {
+        "success": True,
+        "rates": {"RUB": 100.0, "CNY": 10.0},
+    }
+
+    with patch("src.external_api.EXCHANGE_API", "test-api-key"):
+        with patch("src.external_api.requests.get", return_value=fake_response) as mock_get:
+            result = get_historical_rub_rate("CNY", "2019-04-25")
+
+    assert result == 10.0
+    mock_get.assert_called_once_with(
+        "https://api.apilayer.com/exchangerates_data/2019-04-25",
+        params={"base": "EUR", "symbols": "CNY,RUB"},
+        headers={"apikey": "test-api-key"},
+        timeout=10,
+    )
+
+
+@pytest.mark.parametrize(
+    ("rub_rate", "currency_rate"),
+    [(-1.0, 2.0), (float("nan"), 2.0), (100.0, 0.0), (100.0, float("inf"))],
+)
+def test_get_currency_rates_rejects_invalid_values(rub_rate: float, currency_rate: float):
+    fake_response = Mock()
+    fake_response.json.return_value = {
+        "success": True,
+        "rates": {"RUB": rub_rate, "USD": currency_rate},
+    }
+
+    with patch("src.external_api.EXCHANGE_API", "test-api-key"):
+        with patch("src.external_api.requests.get", return_value=fake_response):
+            with pytest.raises(ValueError, match="Некорректный курс валюты"):
+                get_currency_rates(["USD"])
 
 
 def test_get_stock_prices():

@@ -1,8 +1,35 @@
 # Обработка банковских данных
 
+## Курсовая работа
+
+Приложение анализирует банковские операции из `data/operations.xlsx`. Реализованы три задачи:
+
+- **Главная** (`src/views.py`) — формирует JSON с приветствием, расходами и кешбэком по картам, топом транзакций, курсами валют и ценами акций.
+- **Простой поиск** (`src/services.py`) — ищет подстроку в описании или категории без учёта регистра и возвращает JSON.
+- **Траты по категории** (`src/reports.py`) — выбирает расходы за последние три месяца и сохраняет Excel-отчёт в `reports/spending_by_category.xlsx`.
+
+Примеры запуска из корня проекта:
+
+```bash
+poetry run python -c 'from src.views import main_page; print(main_page("2021-12-31 23:59:59"))'
+```
+
+```bash
+poetry run python -c 'from src.utils import load_operations; from src.services import simple_search; print(simple_search(load_operations("data/operations.xlsx"), "Супермаркеты"))'
+```
+
+```bash
+poetry run python -c 'from src.utils import load_operations; from src.reports import spending_by_category; data = load_operations("data/operations.xlsx"); print(len(spending_by_category(data, "Супермаркеты", "2021-12-31")))'
+```
+
+Для «Главной» нужны ключи `EXCHANGE_API` и `TWELVE_DATA_API` в `.env`. Настраиваемые валюты и акции перечислены в `user_settings.json`.
+
+Суммы расходов, кешбэка и топа транзакций на «Главной» выражены в RUB. Платежи в других валютах пересчитываются по курсу на дату операции; для таких месяцев нужен доступ к историческим курсам Exchange Rates Data API.
+
 ## Цель проекта
 
 Проект содержит функции для обработки банковских данных: маскирует номера карт и счетов, формирует подпись для карты или счёта, форматирует дату, фильтрует и сортирует операции, загружает транзакции из JSON-, CSV- и Excel-файлов и конвертирует суммы в USD и EUR в рубли.
+
 ## Установка и запуск
 
 Нужен Python 3.14. Скачайте или клонируйте проект и перейдите в его каталог. Установите зависимости командой:
@@ -11,24 +38,25 @@
 poetry install
 ```
 
-Для конвертации транзакций в USD и EUR создайте `.env` на основе шаблона и укажите API-ключ Exchange Rates Data:
+Для конвертации транзакций в USD и EUR и запуска «Главной» создайте `.env` на основе шаблона:
 
 ```bash
 cp .env.example .env
 ```
 
-Добавьте в `.env` свой ключ:
+Укажите в `.env` ключи Exchange Rates Data и Twelve Data:
 
 ```env
 EXCHANGE_API=ваш_api_ключ
+TWELVE_DATA_API=ваш_api_ключ
 ```
 
-Для транзакций в рублях API-ключ не требуется.
+При конвертации рублёвой транзакции `convert_to_rub` не обращается к API. Для примера «Главной» выше нужны оба ключа: он запрашивает курсы валют и цены акций.
 
 Запустить интерактивную программу можно командой:
 
 ```bash
-python main.py
+poetry run python main.py
 ```
 
 Программа предложит выбрать источник транзакций (JSON, CSV или Excel), статус операций и дополнительные фильтры: сортировку по дате, рублёвые транзакции и поиск по описанию. Затем она покажет подходящие операции.
@@ -81,9 +109,15 @@ oldest_first = sort_by_date(completed, is_reversed=False)
 ```python
 from src.processing import process_bank_operations, process_bank_search
 
-matches = process_bank_search(operations, "перевод")
+search_operations = [
+    {"description": "Перевод организации"},
+    {"description": "Открытие вклада"},
+    {"description": "Оплата телефона"},
+]
+
+matches = process_bank_search(search_operations, "перевод")
 category_counts = process_bank_operations(
-    operations,
+    search_operations,
     ["Перевод организации", "Открытие вклада"],
 )
 ```
@@ -211,17 +245,17 @@ print(excel_transactions[0])
 Запустить все тесты можно командой:
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 Чтобы посмотреть покрытие исходного кода и создать HTML-отчёт в `htmlcov/`, выполните:
 
 ```bash
-pytest --cov=src --cov-report=term-missing --cov-report=html
+poetry run pytest --cov=src --cov-report=term-missing --cov-report=html
 ```
 
 Чтобы включить в покрытие также интерактивную функцию `main`, используйте:
 
 ```bash
-pytest --cov=src --cov=main --cov-report=term-missing --cov-report=html
+poetry run pytest --cov=src --cov=main --cov-report=term-missing --cov-report=html
 ```

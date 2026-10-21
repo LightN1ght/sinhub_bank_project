@@ -5,10 +5,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.external_api import get_currency_rates, get_stock_prices
+from src.external_api import (
+    get_currency_rates,
+    get_historical_rub_rate,
+    get_stock_prices,
+)
 from src.utils import load_operations
 
 logger = logging.getLogger(__name__)
+RUB_AMOUNT_COLUMN = "Сумма платежа (RUB)"
 
 
 def get_greeting(current_time: datetime) -> str:
@@ -37,23 +42,36 @@ def select_month_transactions(
     return transactions.loc[mask]
 
 
+def convert_payment_amounts_to_rub(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Пересчитывает платежи в рубли по курсу на дату операции"""
+    if RUB_AMOUNT_COLUMN in transactions.columns:
+        return transactions
+
+    converted = transactions.copy()
+    converted[RUB_AMOUNT_COLUMN] = converted["Сумма платежа"].astype(float)
+    foreign_mask = converted["Статус"].eq("OK") & converted["Валюта платежа"].ne("RUB")
+    rates: dict[tuple[str, str], float] = {}
+
+    for index, row in converted.loc[foreign_mask].iterrows():
+        currency = str(row["Валюта платежа"])
+        date = pd.Timestamp(row["Дата операции"]).strftime("%Y-%m-%d")
+        key = (currency, date)
+        if key not in rates:
+            rates[key] = get_historical_rub_rate(currency, date)
+        converted.at[index, RUB_AMOUNT_COLUMN] = float(row["Сумма платежа"]) * rates[key]
+
+    return converted
+
+
 def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
-    """Считает рублёвые расходы и кешбэк по каждой карте"""
+    """Считает расходы и кешбэк по каждой карте в рублях"""
+    transactions = convert_payment_amounts_to_rub(transactions)
     expenses = transactions.loc[
-        transactions["Статус"].eq("OK") & transactions["Сумма платежа"].lt(0) & transactions["Номер карты"].notna()
+        transactions["Статус"].eq("OK") & transactions[RUB_AMOUNT_COLUMN].lt(0) & transactions["Номер карты"].notna()
     ].copy()
 
-    foreign_expenses = expenses.loc[expenses["Валюта платежа"].ne("RUB")]
-    if not foreign_expenses.empty:
-        logger.warning(
-            "Пропущено %d расходов в валюте, отличной от RUB",
-            len(foreign_expenses),
-        )
-
-    expenses = expenses.loc[expenses["Валюта платежа"].eq("RUB")].copy()
-
     expenses["last_digits"] = expenses["Номер карты"].astype(str).str[-4:]
-    totals = expenses.groupby("last_digits", sort=True)["Сумма платежа"].sum()
+    totals = expenses.groupby("last_digits", sort=True)[RUB_AMOUNT_COLUMN].sum()
 
     cards: list[dict[str, str | float]] = []
     for last_digits, amount in totals.items():
@@ -72,9 +90,10 @@ def get_cards_info(transactions: pd.DataFrame) -> list[dict[str, str | float]]:
 def get_top_transactions(
     transactions: pd.DataFrame,
 ) -> list[dict[str, str | float]]:
-    """Возвращает до пяти успешных рублёвых операций по убыванию суммы платежа"""
-    completed = transactions.loc[transactions["Статус"].eq("OK") & transactions["Валюта платежа"].eq("RUB")]
-    top_five = completed.nlargest(5, "Сумма платежа")
+    """Возвращает до пяти успешных операций по убыванию суммы в рублях"""
+    transactions = convert_payment_amounts_to_rub(transactions)
+    completed = transactions.loc[transactions["Статус"].eq("OK")]
+    top_five = completed.nlargest(5, RUB_AMOUNT_COLUMN)
 
     result = []
     for _, row in top_five.iterrows():
@@ -82,7 +101,7 @@ def get_top_transactions(
         result.append(
             {
                 "date": row["Дата операции"].strftime("%d.%m.%Y"),
-                "amount": float(row["Сумма платежа"]),
+                "amount": round(float(row[RUB_AMOUNT_COLUMN]), 2),
                 "category": "" if pd.isna(category) else str(category),
                 "description": str(row["Описание"]),
             }
@@ -99,6 +118,7 @@ def build_home_page(
     """Собирает JSON главной страницы из переданных данных"""
     current_time = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
     month_transactions = select_month_transactions(transactions, date_time)
+    month_transactions = convert_payment_amounts_to_rub(month_transactions)
 
     response = {
         "greeting": get_greeting(current_time),
