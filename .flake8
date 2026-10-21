@@ -2,3 +2,5 @@
 max-line-length = 119
 exclude = __pycache__, .git
 ignore = W503
+per-file-ignores =
+    src/reports.py:E704

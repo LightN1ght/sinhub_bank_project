@@ -1,1 +1,261 @@
-# sinhub_bank_project
+# Обработка банковских данных
+
+## Курсовая работа
+
+Приложение анализирует банковские операции из `data/operations.xlsx`. Реализованы три задачи:
+
+- **Главная** (`src/views.py`) — формирует JSON с приветствием, расходами и кешбэком по картам, топом транзакций, курсами валют и ценами акций.
+- **Простой поиск** (`src/services.py`) — ищет подстроку в описании или категории без учёта регистра и возвращает JSON.
+- **Траты по категории** (`src/reports.py`) — выбирает расходы за последние три месяца и сохраняет Excel-отчёт в `reports/spending_by_category.xlsx`.
+
+Примеры запуска из корня проекта:
+
+```bash
+poetry run python -c 'from src.views import main_page; print(main_page("2021-12-31 23:59:59"))'
+```
+
+```bash
+poetry run python -c 'from src.utils import load_operations; from src.services import simple_search; print(simple_search(load_operations("data/operations.xlsx"), "Супермаркеты"))'
+```
+
+```bash
+poetry run python -c 'from src.utils import load_operations; from src.reports import spending_by_category; data = load_operations("data/operations.xlsx"); print(len(spending_by_category(data, "Супермаркеты", "2021-12-31")))'
+```
+
+Для «Главной» нужны ключи `EXCHANGE_API` и `TWELVE_DATA_API` в `.env`. Настраиваемые валюты и акции перечислены в `user_settings.json`.
+
+Суммы расходов, кешбэка и топа транзакций на «Главной» выражены в RUB. Платежи в других валютах пересчитываются по курсу на дату операции; для таких месяцев нужен доступ к историческим курсам Exchange Rates Data API.
+
+## Цель проекта
+
+Проект содержит функции для обработки банковских данных: маскирует номера карт и счетов, формирует подпись для карты или счёта, форматирует дату, фильтрует и сортирует операции, загружает транзакции из JSON-, CSV- и Excel-файлов и конвертирует суммы в USD и EUR в рубли.
+
+## Установка и запуск
+
+Нужен Python 3.14. Скачайте или клонируйте проект и перейдите в его каталог. Установите зависимости командой:
+
+```bash
+poetry install
+```
+
+Для конвертации транзакций в USD и EUR и запуска «Главной» создайте `.env` на основе шаблона:
+
+```bash
+cp .env.example .env
+```
+
+Укажите в `.env` ключи Exchange Rates Data и Twelve Data:
+
+```env
+EXCHANGE_API=ваш_api_ключ
+TWELVE_DATA_API=ваш_api_ключ
+```
+
+При конвертации рублёвой транзакции `convert_to_rub` не обращается к API. Для примера «Главной» выше нужны оба ключа: он запрашивает курсы валют и цены акций.
+
+Запустить интерактивную программу можно командой:
+
+```bash
+poetry run python main.py
+```
+
+Программа предложит выбрать источник транзакций (JSON, CSV или Excel), статус операций и дополнительные фильтры: сортировку по дате, рублёвые транзакции и поиск по описанию. Затем она покажет подходящие операции.
+
+## Использование функций
+
+Импортируйте нужные функции из пакетов `src` и передайте им данные.
+
+### Маскирование карты и счёта
+
+```python
+from src.masks import get_mask_card_number, get_mask_account
+
+get_mask_card_number("1234567812345678")  # '1234 56** **** 5678'
+get_mask_account("40817810099910004312")  # '**4312'
+```
+
+### Подпись карты или счёта и форматирование даты
+
+```python
+from src.widget import mask_account_card, get_date
+
+mask_account_card("Visa Platinum 1234567812345678")  # 'Visa Platinum 1234 56** **** 5678'
+mask_account_card("Счет 40817810099910004312")       # 'Счет **4312'
+get_date("2024-03-11T02:26:18.671407")               # '11.03.2024'
+```
+
+### Фильтрация и сортировка операций
+
+Каждая операция передаётся как словарь с ключами `state` и `date`. Фильтр по умолчанию оставляет операции со статусом `EXECUTED`; сортировка по умолчанию располагает их от новых к старым. Чтобы отсортировать от старых к новым, передайте `is_reversed=False`.
+
+```python
+from src.processing import filter_by_state, sort_by_date
+
+operations = [
+    {"state": "EXECUTED", "date": "2024-03-11T02:26:18.671407"},
+    {"state": "PENDING", "date": "2024-03-12T10:00:00"},
+    {"state": "EXECUTED", "date": "2024-03-08T12:30:00"},
+]
+
+completed = filter_by_state(operations)
+latest_first = sort_by_date(completed)
+oldest_first = sort_by_date(completed, is_reversed=False)
+```
+
+### Поиск и подсчёт категорий операций
+
+Модуль `src.processing` также содержит `process_bank_search` для поиска текста в описаниях операций и `process_bank_operations` для подсчёта операций по списку категорий. Поиск не учитывает регистр, а категории сопоставляются с описанием целиком.
+
+```python
+from src.processing import process_bank_operations, process_bank_search
+
+search_operations = [
+    {"description": "Перевод организации"},
+    {"description": "Открытие вклада"},
+    {"description": "Оплата телефона"},
+]
+
+matches = process_bank_search(search_operations, "перевод")
+category_counts = process_bank_operations(
+    search_operations,
+    ["Перевод организации", "Открытие вклада"],
+)
+```
+
+Функция `main` в корневом модуле `main.py` связывает загрузку транзакций, фильтрацию, сортировку и вывод результатов в интерактивной программе.
+
+### Генераторы для транзакций и номеров карт
+
+Модуль `src.generators` содержит генераторы для отбора транзакций по коду валюты, получения описаний операций и выдачи номеров карт в диапазоне.
+
+```python
+from src.generators import (
+    card_number_generator,
+    filter_by_currency,
+    transaction_descriptions,
+)
+
+transactions = [
+    {
+        "id": 1,
+        "description": "Перевод организации",
+        "operationAmount": {
+            "amount": "9824.07",
+            "currency": {"name": "USD", "code": "USD"},
+        },
+    },
+    {
+        "id": 2,
+        "description": "Перевод со счета на счет",
+        "operationAmount": {
+            "amount": "5000.00",
+            "currency": {"name": "руб.", "code": "RUB"},
+        },
+    },
+]
+
+# Генератор возвращает только транзакции с указанным кодом валюты.
+usd_transactions = list(filter_by_currency(transactions, "USD"))
+
+# Генератор выдаёт описания в порядке исходного списка.
+descriptions = list(transaction_descriptions(transactions))
+
+# Границы диапазона включены; номера форматируются группами по четыре цифры.
+card_numbers = list(card_number_generator(1, 3))
+# ['0000 0000 0000 0001', '0000 0000 0000 0002', '0000 0000 0000 0003']
+```
+
+### Логирование вызовов функций
+
+Модуль `src.decorators` содержит декоратор `log`. Он записывает начало вызова функции и сообщение об успешном завершении. Если функция завершается ошибкой, в лог попадают её имя, тип ошибки и переданные аргументы. После записи ошибка передаётся дальше.
+
+Если `filename` не указан, сообщения выводятся в консоль. Если указан, они дописываются в файл.
+
+```python
+from src.decorators import log
+
+
+@log()
+def add(x, y):
+    return x + y
+
+
+@log(filename="mylog.txt")
+def divide(x, y):
+    return x / y
+
+
+add(1, 2)
+divide(10, 2)
+```
+
+### Загрузка транзакций из JSON
+
+Модуль `src.utils` содержит функцию `load_transactions`. Она принимает путь к JSON-файлу и возвращает список транзакций. Если файл не найден, пустой, содержит некорректный JSON или данные верхнего уровня не являются списком, функция возвращает пустой список.
+
+Файл с операциями проекта находится в `data/operations.json`.
+
+```python
+from src.utils import load_transactions
+
+transactions = load_transactions("data/operations.json")
+```
+
+### Конвертация суммы в рубли
+
+Модуль `src.external_api` содержит функцию `convert_to_rub`. Она принимает словарь с данными одной транзакции и возвращает её сумму в рублях типа `float`. Для RUB сумма возвращается без обращения к API. Для USD и EUR используется Exchange Rates Data API и ключ из `.env`.
+
+```python
+from src.external_api import convert_to_rub
+
+transaction = {
+    "operationAmount": {
+        "amount": "10",
+        "currency": {"name": "USD", "code": "USD"},
+    },
+}
+
+amount_in_rubles = convert_to_rub(transaction)
+print(amount_in_rubles)
+```
+
+Для конвертации USD и EUR нужны настроенный API-ключ и подключение к интернету.
+
+### Чтение транзакций из CSV и Excel
+
+Модуль `src.transaction_readers` содержит функции для чтения транзакций из CSV- и Excel-файлов. Каждая функция принимает путь к файлу и возвращает список словарей: один словарь на строку таблицы. В CSV-файле значения разделены точкой с запятой.
+
+```python
+from src.transaction_readers import (
+    read_transactions_from_csv,
+    read_transactions_from_excel,
+)
+
+csv_transactions = read_transactions_from_csv("data/transactions.csv")
+excel_transactions = read_transactions_from_excel(
+    "data/transactions_excel.xlsx"
+)
+
+print(csv_transactions[0])
+print(excel_transactions[0])
+```
+
+### Тесты и покрытие
+
+Запустить все тесты можно командой:
+
+```bash
+poetry run pytest
+```
+
+Чтобы посмотреть покрытие исходного кода и создать HTML-отчёт в `htmlcov/`, выполните:
+
+```bash
+poetry run pytest --cov=src --cov-report=term-missing --cov-report=html
+```
+
+Чтобы включить в покрытие также интерактивную функцию `main`, используйте:
+
+```bash
+poetry run pytest --cov=src --cov=main --cov-report=term-missing --cov-report=html
+```
